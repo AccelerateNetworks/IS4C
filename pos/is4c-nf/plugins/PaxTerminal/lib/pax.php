@@ -46,8 +46,16 @@ class Pax {
   public function build_request($command, $args=array(), $debug=false) {
     error_log("Building request $command(".implode(", ", $args).")");
     $args_str = "";
+    $processed_args = array();
+    foreach($args as $arg) {
+      if(is_array($arg)) {
+        $processed_args[] = implode(chr(31), $arg);
+      } else {
+        $processed_args[] = $arg;
+      }
+    }
     if(count($args) > 0) {
-      $args_str = implode(chr(28), $args).chr(28);
+      $args_str = implode(chr(28), $processed_args).chr(28);
     }
     $cmd = $command.chr(28).self::PROTO_VERSION.chr(28).$args_str.chr(3);
     $cmd = chr(2).$cmd.self::lrc($cmd);
@@ -57,8 +65,11 @@ class Pax {
   private function http_request($query) {
     # TODO: Allow certificate pinning, use certificates at all, etc
     error_log("WARNING! Instead of verifying the remote certificate any of that 'encryption' shit, we're just doing it in the clear.");
+    error_log("Query string: ".$query);
     $client = new Client("http://".$this->host.":".$this->port);
     $request = $client->get("/?".$query);
+    $query = $request->getQuery();
+    $query->useUrlEncoding(false);
     $response = $request->send();
     return $response->getBody();
   }
@@ -86,7 +97,7 @@ class Pax {
 
   // Different command that can be sent to the device.
   public function do_credit($amount) {
-    $args = array('01', $amount*100, '', '1', '', '', '', '');
+    $args = array('01', strval($amount*100), '', '1', '', '', '', '');
     $out = $this->make_call('T00', $args);
     $out['message'] = $out['fields'][4];
     if($out['code'] == 0) {
