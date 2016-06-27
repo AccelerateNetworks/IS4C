@@ -1,0 +1,145 @@
+<?php
+/*******************************************************************************
+
+    Copyright 2016 Accelerate Networks
+
+    This file is part of IT CORE.
+
+    IT CORE is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    IT CORE is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    in the file license.txt along with IT CORE; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+*********************************************************************************/
+
+include_once(dirname(__FILE__).'/../../../lib/AutoLoader.php');
+use Guzzle\Http\Client;
+
+
+class Pax {
+  const PROTO_VERSION = "1.28";
+  public $host = '127.0.0.1';
+  public $port = 10009;
+
+  function __construct($host, $port=10009) {
+    $this->host = $host;
+    $this->port = $port;
+  }
+
+  private function lrc($input) {
+    $out = 0;
+    foreach(str_split($input) as $c) {
+      $out ^= ord($c);
+    }
+    return chr($out);
+  }
+
+  public function build_request($command, $args=array(), $debug=false) {
+    error_log("Building request $command(".implode(", ", $args).")");
+    $args_str = "";
+    if(count($args) > 0) {
+      $args_str = implode(chr(28), $args).chr(28);
+    }
+    $cmd = $command.chr(28).self::PROTO_VERSION.chr(28).$args_str.chr(3);
+    $cmd = chr(2).$cmd.self::lrc($cmd);
+    return base64_encode($cmd);
+  }
+
+  private function http_request($query) {
+    # TODO: Allow certificate pinning, use certificates at all, etc
+    error_log("WARNING! Instead of verifying the remote certificate any of that 'encryption' shit, we're just doing it in the clear.");
+    $client = new Client("http://".$this->host.":".$this->port);
+    $request = $client->get("/?".$query);
+    $response = $request->send();
+    return $response->getBody();
+  }
+
+  private function parse_response($response) {
+    $lrc = explode(chr(3), trim($response, chr(2)));
+    $expected = self::lrc(substr($response, 1, -1));
+    if($lrc[1] != $expected) {
+      throw new Exception('LRC Mismatch! Got '.$lrc[1].' but expected '.$expected);
+    }
+    $fields = explode(chr(28), $lrc[0]);
+    $out = array();
+    $out['command'] = $fields[1];
+    $out['version'] = intval($fields[2]);
+    $out['code'] = intval($fields[3]);
+    $out['fields'] = $fields;
+    return $out;
+  }
+
+  public function make_call($command, $args=array(), $debug=false) {
+    $query = $this->build_request($command, $args, $debug);
+    $result = $this->http_request($query);
+    return $this->parse_response($result);
+  }
+
+  // Different command that can be sent to the device.
+  public function do_credit($amount) {
+    $args = array('01', $amount*100, '', '1', '', '', '', '');
+    $out = $this->make_call('T00', $args);
+    $out['message'] = $out['fields'][4];
+    if($out['code'] == 0) {
+      // Non-error
+
+      // Host field
+      $host = explode(chr(31), $out['fields'][5]);
+      $out['host']['respones']['code'] = $host[0];
+      $out['host']['response']['message'] = $host[1];
+      $out['host']['auth'] = $host[2];
+      $out['host']['reference_number'] = $host[3];
+      $out['host']['trace'] = $host[4];
+      $out['host']['batch'] = $host[5];
+
+      $out['transaction_type'] = $out['fields'][6];
+
+      $amount = explode(chr(31), $out['fields'][7]);
+      $out['amount']['approved'] = floatval($amount[0])/100;
+      $out['amount']['due'] = $amount[1];
+      $out['amount']['tip'] = $amount[2];
+      $out['amount']['cash_back'] = $amount[3];
+      $out['amount']['fee'] = $amount[4];
+      $out['amount']['tax'] = $amount[5];
+      $out['amount']['balance'] = array($amount[6], $amount[7]);
+
+      $account = explode(chr(31), $out['fields'][8]);
+      $out['account']['number'] = $account[0];
+      $out['account']['entry'] = $account[1];
+      $out['account']['expiry'] = $account[2];
+      $out['account']['ebt_type'] = $account[3];
+      $out['account']['voucher'] = $account[4];
+      $out['account']['new_account_number'] = $account[5];
+      $out['account']['type'] = $account[6];
+      $out['account']['name'] = $account[7];
+      $out['account']['cvd']['approva_code'] = $account[8];
+      $out['account']['cvd']['message'] = $account[9];
+      $out['account']['card_present'] = $account[10] == "0";
+
+      $trace = explode(chr(31), $out['fields'][9]);
+      $out['trace']['transaction'] = $trace[0];
+      $out['trace']['reference'] = $trace[1];
+      $out['trace']['timestamp'] = $trace[2];
+
+      $out['avs'] = explode(chr(31), $out['fields'][10]);
+      $out['commercial'] = explode(chr(30), $out['fields'][11]);
+      $out['moto'] = explode(chr(31), $out['fields'][12]);
+      $out['additional'] = array();
+      foreach(explode(chr(31), $out['fields'][13]) as $value) {
+        $keyvalue = explode("=", $value);
+        $out['additional'][$keyvalue[0]] = $keyvalue[1];
+      }
+    }
+    return $out;
+  }
+
+}
