@@ -75,11 +75,6 @@ function signaturedone(result) {
   }
 }
 
-function signature() {
-
-}
-
-
 function pax_transaction(transaction) {
   console.log(transaction);
   $("#localmsg").text("Use payment terminal to complete " + human_types[transaction.type] + " transaction.");
