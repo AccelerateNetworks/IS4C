@@ -82,7 +82,7 @@ if(isset($_POST['action'])) {
       $transaction = $pax->do_credit($amount);
       $out = store_transaction($transaction, $_POST['action']);
       if($transaction['amount']['approved'] > intval(CoreLocal::get("PaxSigLimit")) && intval(CoreLocal::get("PaxSigLimit")) >= 0) {
-        $ret['needsSig'] = true;
+        $out['needsSig'] = true;
       }
     break;
     case "DC":

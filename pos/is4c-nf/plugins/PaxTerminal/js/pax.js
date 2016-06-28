@@ -26,6 +26,29 @@ human_types.DC = "debit card";
 human_types.EC = "EBT cash";
 human_types.EF = "EBT food";
 
+var need_signature = false;
+window.commands = {};
+
+$(document).ready(function() {
+  $("#formlocal").submit(function (e) {
+    var command = $("#reginput").val();
+    console.log("Executing", command, e);
+    if(window.commands.hasOwnProperty(command)) {
+      e.preventDefault();
+      $("#reginput").val("");
+      window.commands[command]();
+    }
+  });
+});
+
+window.commands.RETRY = function() {
+  if(need_signature) {
+    handleSwipe({code: 0, needsSig: true}).then(redirect).fail(fail);
+  } else {
+    pax_transaction(window.transaction);
+  }
+};
+
 function fail(result) {
   console.error(result);
   $("#localmsg").text(result);
@@ -36,6 +59,7 @@ function handleSwipe(response) {
   switch(response.code) {
     case 0:
       if(response.needsSig) {
+        need_signature = true;
         $("#localmsg").text("Please sign for transaction.");
         result = $.post("../ajax/pax.php", {action: "signature"});
       } else {
@@ -68,7 +92,7 @@ function redirect(response) {
       }
     break;
     default:
-      result.reject("Failed to collect signature, please try again.");
+      result.reject("Failed to collect signature, use [RETRY] to try again or [VOID] to void the card transaction.");
     break;
   }
   return result;
@@ -82,6 +106,7 @@ function signaturedone(result) {
 
 function pax_transaction(transaction) {
   console.log(transaction);
+  window.transaction = transaction;
   $("#localmsg").text("Use payment terminal to complete " + human_types[transaction.type] + " transaction.");
   window.terminalrequest = $.post("../ajax/pax.php", {action: transaction.type, amount: transaction.amtdue}).then(handleSwipe).then(redirect).fail(fail);
 }
