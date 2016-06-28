@@ -213,9 +213,22 @@ class Pax {
     $args = array('01', strval($amount*100), '', '1', '', '', '', '');
     return self::parse_transaction($this->make_call('T02', $args));
   }
-
+  public function do_ebt($amount) {
+    $account = array();
+    $account[] = ''; # Account number
+    $account[] = ''; # Expiry date
+    $account[] = ''; # CVV code
+    $account[] = 'C'; # EBT Type
+    $args = array('01', strval($amount*100), $account, '1', '', '', '', '');
+    return self::parse_transaction($this->make_call('T04', $args));
+  }
   public function do_ebt_food($amount) {
-    $args = array('01', array(strval($amount*100), '', '', '', '', '', '', '', '', 'F'), '', '1', '', '', '', '');
-    return self::parse_transaction($this->make_call('T02', $args));
+    $account = array();
+    $account[] = ''; # Account number
+    $account[] = ''; # Expiry date
+    $account[] = ''; # CVV code
+    $account[] = 'F'; # EBT Type
+    $args = array('01', strval($amount*100), $account, '1', '', '', '', '');
+    return self::parse_transaction($this->make_call('T04', $args));
   }
 }

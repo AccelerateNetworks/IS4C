@@ -99,6 +99,11 @@ if(isset($_POST['action'])) {
         $out = store_transaction($transaction, $_POST['action']);
       }
     break;
+    case "EC":
+      $amount = floatval($_POST['amount']);
+      $transaction = $pax->do_ebt($amount);
+      $out = store_transaction($transaction, $_POST['action']);
+    break;
     case "signature":
       $out = $pax->do_signature();
       $dbc = Database::tDataConnect();
