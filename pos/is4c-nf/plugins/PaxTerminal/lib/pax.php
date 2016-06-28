@@ -87,69 +87,8 @@ class Pax {
     return $out;
   }
 
-  public function make_call($command, $args=array(), $debug=false) {
-    $query = $this->build_request($command, $args, $debug);
-    $result = $this->http_request($query);
-    return $this->parse_response($result);
-  }
-
-  public function save_signature($raw) {
-    $points = explode("^", $raw);
-    $image = imagecreate(168, 85);
-    $black = imagecolorallocate($image, 0, 0, 0);
-    $white = imagecolorallocate($image, 255, 255, 255);
-    imagecolortransparent($image, $white);
-    imagefill($image, 0, 0, $white);
-    $lastx = 0;
-    $lasty = 65535;
-    $lines = array();
-    $line = array();
-    foreach($points as $point) {
-      if($point != "~") {
-        $coords = explode(",", $point);
-        $x = intval($coords[0]);
-        $y = intval($coords[1]);
-        if(($lastx == 0 && $lasty == 65535) || ($x == 0 && $y == 65535)) {
-          $lastx = $x;
-          $lasty = $y;
-          if(count($line) > 0) {
-            $lines[] = $line;
-            $line = array();
-          }
-        } else {
-          $line[] = array($x, $y);
-          imageline($image, $lastx, $lasty, $x, $y, $black);
-          $lastx = $x;
-          $lasty = $y;
-        }
-      }
-    }
-
-    if(count($line) > 0) {
-      $lines[] = $line;
-      $line = array();
-    }
-
-    $filename = CoreLocal::get('transno')."-".CoreLocal::get('CashierNo')."-".uniqid().".png";
-    imagepng($image, __DIR__."/../signatures/".$filename);
-
-    return array("file" => $filename, "vector" => $lines);
-  }
-
-  // Different command that can be sent to the device.
-  public function do_signature($timeout=15) {
-    $request = $this->make_call('A20', array(0, '', '', strval($timeout*10)));
-    if($request['code'] != 0) {
-      return $request;
-    }
-    $out = $this->make_call('A08', array(0, ''));
-    $out['signature'] = self::save_signature($out['fields'][7]);
-    return $out;
-  }
-
-  public function do_credit($amount) {
-    $args = array('01', strval($amount*100), '', '1', '', '', '', '');
-    $out = $this->make_call('T00', $args);
+  private function parse_transaction($terminal_response) {
+    $out = $terminal_response;
     $out['message'] = $out['fields'][4];
     if($out['code'] == 0) {
       // Non-error
@@ -202,6 +141,71 @@ class Pax {
       }
     }
     return $out;
+  }
+
+  public function make_call($command, $args=array(), $debug=false) {
+    $query = $this->build_request($command, $args, $debug);
+    $result = $this->http_request($query);
+    return $this->parse_response($result);
+  }
+
+  public function save_signature($raw) {
+    $points = explode("^", $raw);
+    $image = imagecreate(168, 85);
+    $black = imagecolorallocate($image, 0, 0, 0);
+    $white = imagecolorallocate($image, 255, 255, 255);
+    imagecolortransparent($image, $white);
+    imagefill($image, 0, 0, $white);
+    $lastx = 0;
+    $lasty = 65535;
+    $lines = array();
+    $line = array();
+    foreach($points as $point) {
+      if($point != "~") {
+        $coords = explode(",", $point);
+        $x = intval($coords[0]);
+        $y = intval($coords[1]);
+        if(($lastx == 0 && $lasty == 65535) || ($x == 0 && $y == 65535)) {
+          $lastx = $x;
+          $lasty = $y;
+          if(count($line) > 0) {
+            $lines[] = $line;
+            $line = array();
+          }
+        } else {
+          $line[] = array($x, $y);
+          imageline($image, $lastx, $lasty, $x, $y, $black);
+          $lastx = $x;
+          $lasty = $y;
+        }
+      }
+    }
+
+    if(count($line) > 0) {
+      $lines[] = $line;
+      $line = array();
+    }
+
+    $filename = time().".png";
+    imagepng($image, __DIR__."/../signatures/".$filename);
+
+    return array("file" => $filename, "vector" => $lines);
+  }
+
+  // Different command that can be sent to the device.
+  public function do_signature($timeout=15) {
+    $request = $this->make_call('A20', array(0, '', '', strval($timeout*10)));
+    if($request['code'] != 0) {
+      return $request;
+    }
+    $out = $this->make_call('A08', array(0, ''));
+    $out['signature'] = self::save_signature($out['fields'][7]);
+    return $out;
+  }
+
+  public function do_credit($amount) {
+    $args = array('01', strval($amount*100), '', '1', '', '', '', '');
+    return self::parse_transaction($this->make_call('T00', $args));
   }
 
 }

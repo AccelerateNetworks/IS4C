@@ -31,52 +31,55 @@ if (basename($_SERVER['PHP_SELF']) != basename(__FILE__)){
 include_once(dirname(__FILE__).'/../../../lib/AutoLoader.php');
 
 
+function store_transaction($transaction) {
+  $ret = $transaction;
+  $dbTrans = PaycardLib::paycard_db();
+  $query = "INSERT INTO PaycardTransactions (dateID, empNo, registerNo, transNo, transID,
+    processor, amount, commErr) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+  $args = array();
+  $args[] = date('Ymd');  # dateID
+  $args[] = CoreLocal::get("CashierNo");  # empNo
+  $args[] = CoreLocal::get("laneno");  # registerNo
+  $args[] = CoreLocal::get("transno");  # transNo
+  $args[] = CoreLocal::get("paycard_id");  # transID
+  $args[] = "PAX";  # TODO: Figure out how to get the processor
+  if($transaction['code'] == 0) {
+    $query = "INSERT INTO PaycardTransactions ( dateID, empNo, registerNo, transNo, transID,
+      processor, refNum, cardType, transType, amount, PAN, name, manual, responseDatetime)
+      VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      $args[] = $transaction['host']['reference_number'];  # refNum
+      $args[] = $transaction['account']['type'];  # cardType
+      $args[] = $transaction['transaction_type'];  # transType
+      $args[] = $transaction['amount']['approved'];  # amount
+      $args[] = intval($transaction['additional']['CARDBIN']."000000".$transaction['account']['number']);  # PAN
+      $args[] = $transaction['account']['name'];  # name
+      $args[] = $transaction['account']['entry'] == 0 ? 1 : 0;  # manual
+      $args[] = date('Y-m-d H:i:s');  # responseDatetime
+      TransRecord::addtender('Card', 'CC', $transaction['amount']['approved']*-1);
+      if($transaction['amount']['approved'] > intval(CoreLocal::get("PaxSigLimit")) && intval(CoreLocal::get("PaxSigLimit")) >= 0) {
+        $ret['needsSig'] = true;
+      }
+  } else {
+    $args[] = $amount;
+    $args[] = $transaction['message'];
+  }
+  $prepared = $dbTrans->prepare($query);
+  $dbResponse = $dbTrans->execute($prepared, $args);
+  if(!$dbResponse) {
+    error_log("Failed to store transaction in database!!");
+  }
+  $ret['redirect'] = MiscLib::base_url()."gui-modules/pos2.php?reginput=TO&repeat=1";
+  return $ret;
+}
+
 $out = array("error" => "Something is very wrong");
 $pax = new Pax(CoreLocal::get("PaxHost"), intval(CoreLocal::get("PaxPort")));
 if(isset($_POST['action'])) {
   switch($_POST['action']) {
     case "CC":
       $amount = floatval($_POST['amount']);
-      $out = $pax->do_credit($amount);
-      $out['redirect'] = MiscLib::baseURL();
-      $dbTrans = PaycardLib::paycard_db();
-      $query = "INSERT INTO PaycardTransactions (dateID, empNo, registerNo, transNo, transID,
-        processor, amount, commErr) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-      $args = array();
-      $args[] = date('Ymd');  # dateID
-      $args[] = CoreLocal::get("CashierNo");  # empNo
-      $args[] = CoreLocal::get("laneno");  # registerNo
-      $args[] = CoreLocal::get("transno");  # transNo
-      $args[] = CoreLocal::get("paycard_id");  # transID
-      $args[] = "PAX";  # TODO: Figure out how to get the processor
-      if($out['code'] == 0) {
-        $query = "INSERT INTO PaycardTransactions ( dateID, empNo, registerNo, transNo, transID,
-          processor, refNum, cardType, transType, amount, PAN, name, manual, responseDatetime)
-          VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-          $args[] = $out['host']['reference_number'];  # refNum
-          $args[] = $out['account']['type'];  # cardType
-          $args[] = $out['transaction_type'];  # transType
-          $args[] = $out['amount']['approved'];  # amount
-          $args[] = intval($out['additional']['CARDBIN']."000000".$out['account']['number']);  # PAN
-          $args[] = $out['account']['name'];  # name
-          $args[] = $out['account']['entry'] == 0 ? 1 : 0;  # manual
-          $args[] = date('Y-m-d H:i:s');  # responseDatetime
-          TransRecord::addtender('Card', 'CC', $out['amount']['approved']*-1);
-          if($out['amount']['approved'] > intval(CoreLocal::get("PaxSigLimit")) && intval(CoreLocal::get("PaxSigLimit")) >= 0) {
-            $out['needsSig'] = true;
-          } else {
-            $out['redirect'] = MiscLib::base_url()."gui-modules/pos2.php?reginput=TO&repeat=1";
-          }
-      } else {
-        $args[] = $amount;
-        $args[] = $out['message'];
-      }
-
-      $prepared = $dbTrans->prepare($query);
-      $dbResponse = $dbTrans->execute($prepared, $args);
-      if(!$dbResponse) {
-        error_log("Failed to store transaction in database!!");
-      }
+      $transaction = $pax->do_credit($amount);
+      $out = store_transaction($transaction);
     break;
     case "signature":
       $out = $pax->do_signature();
