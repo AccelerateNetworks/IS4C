@@ -213,4 +213,9 @@ class Pax {
     $args = array('01', strval($amount*100), '', '1', '', '', '', '');
     return self::parse_transaction($this->make_call('T02', $args));
   }
+
+  public function do_ebt_food($amount) {
+    $args = array('01', array(strval($amount*100), '', '', '', '', '', '', '', '', 'F'), '', '1', '', '', '', '');
+    return self::parse_transaction($this->make_call('T02', $args));
+  }
 }

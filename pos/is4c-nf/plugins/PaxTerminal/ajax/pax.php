@@ -30,8 +30,12 @@ if (basename($_SERVER['PHP_SELF']) != basename(__FILE__)){
 
 include_once(dirname(__FILE__).'/../../../lib/AutoLoader.php');
 
+function store_transaction($transaction, $type) {
+  $type_map['CC'] = "Credit Card";
+  $type_map['DC'] = "Debit Card";
+  $type_map['EC'] = "EBT Cash";
+  $type_map['EF'] = "EBT Food";
 
-function store_transaction($transaction) {
   $ret = $transaction;
   $dbTrans = PaycardLib::paycard_db();
   $query = "INSERT INTO PaycardTransactions (dateID, empNo, registerNo, transNo, transID,
@@ -55,7 +59,7 @@ function store_transaction($transaction) {
       $args[] = $transaction['account']['name'];  # name
       $args[] = $transaction['account']['entry'] == 0 ? 1 : 0;  # manual
       $args[] = date('Y-m-d H:i:s');  # responseDatetime
-      TransRecord::addtender('Card', 'CC', $transaction['amount']['approved']*-1);
+      TransRecord::addtender($type_map[$type], $type, $transaction['amount']['approved']*-1);
   } else {
     $args[] = $amount;
     $args[] = $transaction['message'];
@@ -76,7 +80,7 @@ if(isset($_POST['action'])) {
     case "CC":
       $amount = floatval($_POST['amount']);
       $transaction = $pax->do_credit($amount);
-      $out = store_transaction($transaction);
+      $out = store_transaction($transaction, $_POST['action']);
       if($transaction['amount']['approved'] > intval(CoreLocal::get("PaxSigLimit")) && intval(CoreLocal::get("PaxSigLimit")) >= 0) {
         $ret['needsSig'] = true;
       }
@@ -84,7 +88,16 @@ if(isset($_POST['action'])) {
     case "DC":
       $amount = floatval($_POST['amount']);
       $transaction = $pax->do_debit($amount);
-      $out = store_transaction($transaction);
+      $out = store_transaction($transaction, $_POST['action']);
+    break;
+    case "EF":
+      $amount = floatval($_POST['amount']);
+      if($amount > CoreLocal::get('fsEligible')) {
+        $out['error'] = "Only $".CoreLocal::get('fsEligible')." is eligible for EBT food.";
+      } else {
+        $transaction = $pax->do_ebt_food($amount);
+        $out = store_transaction($transaction, $_POST['action']);
+      }
     break;
     case "signature":
       $out = $pax->do_signature();

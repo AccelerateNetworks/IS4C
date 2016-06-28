@@ -46,7 +46,12 @@ function handleSwipe(response) {
       result.reject("Took too long to swipe card. Hit [RETRY] to try again.");
     break;
     default:
-      result.reject("Failed to complete transaction: " + result.message + " (" + result.code + ")");
+      if(response.message !== undefined && response.code !== undefined) {
+        result.reject("Failed to complete transaction: " + response.message + " (" + response.code + ")");
+      } else {
+        console.log(response);
+        result.reject("Failed to complete transaction: " + response.error);
+      }
     break;
   }
   return result;
