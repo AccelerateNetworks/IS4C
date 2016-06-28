@@ -62,10 +62,11 @@ if(isset($_POST['action'])) {
           $args[] = $out['account']['entry'] == 0 ? 1 : 0;  # manual
           $args[] = date('Y-m-d H:i:s');  # responseDatetime
           TransRecord::addtender('Card', 'CC', $out['amount']['approved']*-1);
-          if($out['amount']['approved'] > 10) { // TODO: Fix $10 hard coded signature limit
-            $out['action'] = "signature";
+          if($out['amount']['approved'] > 10) {
+            $out['needsSig'] = true;
+          } else {
+            $out['redirect'] = MiscLib::base_url()."gui-modules/pos2.php?reginput=TO&repeat=1";
           }
-          $out['redirect'] = MiscLib::base_url()."gui-modules/pos2.php?reginput=TO&repeat=1";
       } else {
         $args[] = $amount;
         $args[] = $out['message'];
@@ -79,6 +80,7 @@ if(isset($_POST['action'])) {
     break;
     case "signature":
       $out = $pax->do_signature();
+      $out['redirect'] = MiscLib::base_url()."gui-modules/pos2.php?reginput=TO&repeat=1";
     break;
     default:
       $out['error'] = "Unknown command";

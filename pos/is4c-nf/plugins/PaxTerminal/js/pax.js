@@ -25,31 +25,42 @@ function parseWrapper(str) {
 }
 
 function fail(result) {
-  console.log("Post failed", result);
-  $("#localmsg").text("Failed to complete transaction. Try again with [RETRY]");
+  console.error(result);
+  $("#localmsg").text(result);
 }
 
-function creditdone(result) {
-  console.log("Post succeeded", result);
-  if(result.code === 0) {
-    switch(result.action) {
-      case "signature":
-        signature();
-      break;
-      case "redirect":
-        window.location.href = result.redirect;
-      break;
-    }
-  } else {
-    switch(result.code) {
-      case 100001:
-        $("#localmsg").text("Took too long to swipe card. Hit [RETRY] to try again.");
-      break;
-      default:
-        $("#localmsg").text("Failed to complete transaction: " + result.message + " (" + result.code + ")");
-      break;
-    }
+function handleSwipe(response) {
+  var result = $.Deferred();
+  switch(response.code) {
+    case 0:
+      if(response.needsSig) {
+        $("#localmsg").text("Please sign for transaction.");
+        result = $.post("../ajax/pax.php", {action: "signature"});
+      } else {
+        result = response;
+      }
+    break;
+    case 100001:
+      result.reject("Took too long to swipe card. Hit [RETRY] to try again.");
+    break;
+    default:
+      result.reject("Failed to complete transaction: " + result.message + " (" + result.code + ")");
+    break;
   }
+  return result;
+}
+
+function redirect(response) {
+  var result = $.Deferred();
+  switch(response.code) {
+    case 0:
+      window.location.href = response.redirect;
+    break;
+    default:
+      result.reject("Failed to collect signature, please try again.");
+    break;
+  }
+  return result;
 }
 
 function signaturedone(result) {
@@ -59,12 +70,12 @@ function signaturedone(result) {
 }
 
 function signature() {
-  window.terminalrequest = $.post("../ajax/pax.php", {action: "signature"}).done(signaturedone).fail(fail);
+
 }
 
 
 function pax_transaction(transaction) {
   console.log(transaction);
   $("#localmsg").text("Use payment terminal to complete transaction.");
-  window.terminalrequest = $.post("../ajax/pax.php", {action: "credit", amount: transaction.amtdue}).done(creditdone).fail(fail);
+  window.terminalrequest = $.post("../ajax/pax.php", {action: "credit", amount: transaction.amtdue}).then(handleSwipe).then(redirect).fail(fail);
 }

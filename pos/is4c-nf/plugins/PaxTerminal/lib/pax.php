@@ -102,6 +102,8 @@ class Pax {
     imagefill($image, 0, 0, $white);
     $lastx = 0;
     $lasty = 65535;
+    $lines = array();
+    $line = array();
     foreach($points as $point) {
       if($point != "~") {
         $coords = explode(",", $point);
@@ -110,16 +112,42 @@ class Pax {
         if(($lastx == 0 && $lasty == 65535) || ($x == 0 && $y == 65535)) {
           $lastx = $x;
           $lasty = $y;
+          if(count($line) > 0) {
+            $lines[] = $line;
+            $line = array();
+          }
         } else {
+          $line[] = array($x, $y);
           imageline($image, $lastx, $lasty, $x, $y, $black);
           $lastx = $x;
           $lasty = $y;
         }
       }
     }
-    $filename = uniqid().".png";
+
+    if(count($line) > 0) {
+      $lines[] = $line;
+      $line = array();
+    }
+
+    $filename = CoreLocal::get('transno')."-".CoreLocal::get('CashierNo')."-".uniqid().".png";
     imagepng($image, __DIR__."/../signatures/".$filename);
-    return $filename;
+
+    // Log the signature to the database
+    $dbc = Database::tDataConnect();
+    $query = "INSERT INTO CapturedSignature (tdate, emp_no, register_no, trans_no, trans_id, filetype, filecontents) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    $prepared = $dbc->prepare($query);
+    $args = array(
+      date('Y-m-d H:i:s'),
+      CoreLocal::get('CashierNo'),
+      CoreLocal::get('laneno'),
+      CoreLocal::get('transno'),
+      CoreLocal::get('paycard_id'),
+      "vector",
+      $raw
+    );
+
+    return array("file" => $filename, "lines" => $lines);
   }
 
   // Different command that can be sent to the device.
