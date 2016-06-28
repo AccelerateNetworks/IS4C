@@ -35,7 +35,7 @@ $out = array("error" => "Something is very wrong");
 $pax = new Pax(CoreLocal::get("PaxHost"), intval(CoreLocal::get("PaxPort")));
 if(isset($_POST['action'])) {
   switch($_POST['action']) {
-    case "credit":
+    case "CC":
       $amount = floatval($_POST['amount']);
       $out = $pax->do_credit($amount);
       $out['redirect'] = MiscLib::baseURL();
@@ -62,7 +62,7 @@ if(isset($_POST['action'])) {
           $args[] = $out['account']['entry'] == 0 ? 1 : 0;  # manual
           $args[] = date('Y-m-d H:i:s');  # responseDatetime
           TransRecord::addtender('Card', 'CC', $out['amount']['approved']*-1);
-          if($out['amount']['approved'] > 10) {
+          if($out['amount']['approved'] > intval(CoreLocal::get("PaxSigLimit")) && intval(CoreLocal::get("PaxSigLimit")) >= 0) {
             $out['needsSig'] = true;
           } else {
             $out['redirect'] = MiscLib::base_url()."gui-modules/pos2.php?reginput=TO&repeat=1";
@@ -80,6 +80,19 @@ if(isset($_POST['action'])) {
     break;
     case "signature":
       $out = $pax->do_signature();
+      $dbc = Database::tDataConnect();
+      $query = "INSERT INTO CapturedSignature (tdate, emp_no, register_no, trans_no, trans_id, filetype, filecontents) VALUES (?, ?, ?, ?, ?, ?, ?)";
+      $prepared = $dbc->prepare($query);
+      $args = array(
+        date('Y-m-d H:i:s'),
+        CoreLocal::get('CashierNo'),
+        CoreLocal::get('laneno'),
+        CoreLocal::get('transno'),
+        CoreLocal::get('paycard_id'),
+        "vector",
+        json_encode($out['signature']['vector'])
+      );
+      $out['storage_result'] = $dbc->execute($prepared, $args);
       $out['redirect'] = MiscLib::base_url()."gui-modules/pos2.php?reginput=TO&repeat=1";
     break;
     default:

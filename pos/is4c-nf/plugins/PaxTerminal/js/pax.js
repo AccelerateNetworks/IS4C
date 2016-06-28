@@ -20,9 +20,11 @@
 
 *********************************************************************************/
 
-function parseWrapper(str) {
-
-}
+var human_types = {};
+human_types.CC = "credit card";
+human_types.DC = "debit card";
+human_types.EC = "EBT cash";
+human_types.EF = "EBT food";
 
 function fail(result) {
   console.error(result);
@@ -54,7 +56,11 @@ function redirect(response) {
   var result = $.Deferred();
   switch(response.code) {
     case 0:
-      window.location.href = response.redirect;
+      if(!window.no_redirect) {
+        window.location.href = response.redirect;
+      } else {
+        console.log(response);
+      }
     break;
     default:
       result.reject("Failed to collect signature, please try again.");
@@ -76,6 +82,6 @@ function signature() {
 
 function pax_transaction(transaction) {
   console.log(transaction);
-  $("#localmsg").text("Use payment terminal to complete transaction.");
-  window.terminalrequest = $.post("../ajax/pax.php", {action: "credit", amount: transaction.amtdue}).then(handleSwipe).then(redirect).fail(fail);
+  $("#localmsg").text("Use payment terminal to complete " + human_types[transaction.type] + " transaction.");
+  window.terminalrequest = $.post("../ajax/pax.php", {action: transaction.type, amount: transaction.amtdue}).then(handleSwipe).then(redirect).fail(fail);
 }

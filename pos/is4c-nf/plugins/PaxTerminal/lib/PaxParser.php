@@ -24,17 +24,18 @@
 class PaxParser extends Parser {
 
   public function check($str) {
-    return (is_numeric(substr($str, 0, -3)) || strlen($str) == 3) && substr($str, -3) == "PAX";
+    $accepted_types = array('CC', 'DC', 'EC', 'EF');
+    return (is_numeric(substr($str, 0, -2)) || strlen($str) == 2) && in_array(substr($str, -2), $accepted_types);
   }
 
   public function parse($str) {
     $amount = CoreLocal::get('amtdue');
-    if(is_numeric(substr($str, 0, -3))) {
-      $amount = floatval(substr($str, 0, -3))/100;
+    if(is_numeric(substr($str, 0, -2))) {
+      $amount = floatval(substr($str, 0, -2))/100;
     }
     $info = new PaxTerminal();
     $ret = $this->default_json();
-    $ret['main_frame'] = $info->pluginUrl() . '/gui/paxcommand.php?amount='.$amount;
+    $ret['main_frame'] = $info->pluginUrl() . '/gui/paxcommand.php?amount='.$amount.'&type='.substr($str, -2);
     return $ret;
   }
 

@@ -95,7 +95,7 @@ class Pax {
 
   public function save_signature($raw) {
     $points = explode("^", $raw);
-    $image = imagecreate(200, 200);  // TODO: Figure out how big it should *actually* be
+    $image = imagecreate(168, 85);
     $black = imagecolorallocate($image, 0, 0, 0);
     $white = imagecolorallocate($image, 255, 255, 255);
     imagecolortransparent($image, $white);
@@ -133,21 +133,7 @@ class Pax {
     $filename = CoreLocal::get('transno')."-".CoreLocal::get('CashierNo')."-".uniqid().".png";
     imagepng($image, __DIR__."/../signatures/".$filename);
 
-    // Log the signature to the database
-    $dbc = Database::tDataConnect();
-    $query = "INSERT INTO CapturedSignature (tdate, emp_no, register_no, trans_no, trans_id, filetype, filecontents) VALUES (?, ?, ?, ?, ?, ?, ?)";
-    $prepared = $dbc->prepare($query);
-    $args = array(
-      date('Y-m-d H:i:s'),
-      CoreLocal::get('CashierNo'),
-      CoreLocal::get('laneno'),
-      CoreLocal::get('transno'),
-      CoreLocal::get('paycard_id'),
-      "vector",
-      $raw
-    );
-
-    return array("file" => $filename, "lines" => $lines);
+    return array("file" => $filename, "vector" => $lines);
   }
 
   // Different command that can be sent to the device.

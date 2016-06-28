@@ -33,6 +33,11 @@ class PaxTerminal extends Plugin {
       'label' => 'Pax terminal port',
       'description' => 'The port to communicate with the pax terminal on',
       'default' => '10009'
+    ),
+    'PaxSigLimit' => array(
+      'label' => 'Signature Threshhold',
+      'description' => 'Transactions below this amount will not be asked for a signature. Set to -1 to never ask for a signature',
+      'default' => '-1'
     )
   );
 }

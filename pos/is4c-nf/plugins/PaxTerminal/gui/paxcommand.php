@@ -41,12 +41,16 @@ class PaxCommandPage extends BasicCorePage {
 
   function body_content() {
     $amount = CoreLocal::get('amtdue');
+    $type = "CC";
     if(isset($_GET['amount'])) {
       $amount = $_GET['amount'];
     }
+    if(isset($_GET['type'])) {
+      $type = $_GET['type'];
+    }
     $this->input_header("action=\"".$_SERVER['PHP_SELF']."\"");
     $info = _("Pay $".$amount." via card");
-    $js_array = array('amtdue' => $amount);
+    $js_array = array('amtdue' => $amount, 'type' => $type);
     ?>
     <div class="baseHeight">
     <div class="coloredArea centeredDisplay">
