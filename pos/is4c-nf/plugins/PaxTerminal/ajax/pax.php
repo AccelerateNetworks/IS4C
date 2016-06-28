@@ -56,9 +56,6 @@ function store_transaction($transaction) {
       $args[] = $transaction['account']['entry'] == 0 ? 1 : 0;  # manual
       $args[] = date('Y-m-d H:i:s');  # responseDatetime
       TransRecord::addtender('Card', 'CC', $transaction['amount']['approved']*-1);
-      if($transaction['amount']['approved'] > intval(CoreLocal::get("PaxSigLimit")) && intval(CoreLocal::get("PaxSigLimit")) >= 0) {
-        $ret['needsSig'] = true;
-      }
   } else {
     $args[] = $amount;
     $args[] = $transaction['message'];
@@ -80,6 +77,14 @@ if(isset($_POST['action'])) {
       $amount = floatval($_POST['amount']);
       $transaction = $pax->do_credit($amount);
       $out = store_transaction($transaction);
+      if($transaction['amount']['approved'] > intval(CoreLocal::get("PaxSigLimit")) && intval(CoreLocal::get("PaxSigLimit")) >= 0) {
+        $ret['needsSig'] = true;
+      }
+    break;
+    case "DC":
+      $amount = floatval($_POST['amount']);
+      $transaction = $pax->do_debit($amount);
+      $out = store_transaction($transaction);
     break;
     case "signature":
       $out = $pax->do_signature();
@@ -92,7 +97,7 @@ if(isset($_POST['action'])) {
         CoreLocal::get('laneno'),
         CoreLocal::get('transno'),
         CoreLocal::get('paycard_id'),
-        "vector",
+        "svg",
         json_encode($out['signature']['vector'])
       );
       $out['storage_result'] = $dbc->execute($prepared, $args);

@@ -131,11 +131,13 @@ class Pax {
       $out['trace']['reference'] = $trace[1];
       $out['trace']['timestamp'] = $trace[2];
 
-      $out['avs'] = explode(chr(31), $out['fields'][10]);
-      $out['commercial'] = explode(chr(30), $out['fields'][11]);
-      $out['moto'] = explode(chr(31), $out['fields'][12]);
+      if(count($out['fields']) == 14) {
+        $out['avs'] = explode(chr(31), $out['fields'][10]);
+        $out['commercial'] = explode(chr(30), $out['fields'][11]); # Does not exist in debit transactions
+        $out['moto'] = explode(chr(31), $out['fields'][12]); # Does not exist in debit transactions
+      }
       $out['additional'] = array();
-      foreach(explode(chr(31), $out['fields'][13]) as $value) {
+      foreach(explode(chr(31), $out['fields'][count($out['fields'])-1]) as $value) {
         $keyvalue = explode("=", $value);
         $out['additional'][$keyvalue[0]] = $keyvalue[1];
       }
@@ -193,7 +195,7 @@ class Pax {
   }
 
   // Different command that can be sent to the device.
-  public function do_signature($timeout=15) {
+  public function do_signature($timeout=30) {
     $request = $this->make_call('A20', array(0, '', '', strval($timeout*10)));
     if($request['code'] != 0) {
       return $request;
@@ -207,5 +209,8 @@ class Pax {
     $args = array('01', strval($amount*100), '', '1', '', '', '', '');
     return self::parse_transaction($this->make_call('T00', $args));
   }
-
+  public function do_debit($amount) {
+    $args = array('01', strval($amount*100), '', '1', '', '', '', '');
+    return self::parse_transaction($this->make_call('T02', $args));
+  }
 }
