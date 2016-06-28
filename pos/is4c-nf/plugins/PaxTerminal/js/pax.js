@@ -24,18 +24,21 @@ function parseWrapper(str) {
 
 }
 
-function postfail(result) {
+function fail(result) {
   console.log("Post failed", result);
   $("#localmsg").text("Failed to complete transaction. Try again with [RETRY]");
 }
 
-function postdone(result) {
+function creditdone(result) {
   console.log("Post succeeded", result);
   if(result.code === 0) {
-    $("#localmsg").text("Transaction complete!");
-    $('#reginput').val("CL");
-    if(result.redirect) {
-      window.location.href = result.redirect;
+    switch(result.action) {
+      case "signature":
+        signature();
+      break;
+      case "redirect":
+        window.location.href = result.redirect;
+      break;
     }
   } else {
     switch(result.code) {
@@ -49,8 +52,19 @@ function postdone(result) {
   }
 }
 
+function signaturedone(result) {
+  if(result.code === 0) {
+    $("#localmsg").html($("<img>").attr('src', '../signatures/' + result.signature));
+  }
+}
+
+function signature() {
+  window.terminalrequest = $.post("../ajax/pax.php", {action: "signature"}).done(signaturedone).fail(fail);
+}
+
+
 function pax_transaction(transaction) {
   console.log(transaction);
   $("#localmsg").text("Use payment terminal to complete transaction.");
-  window.terminalrequest = $.post("../ajax/pax.php", {action: "credit", amount: transaction.amtdue}).done(postdone).fail(postfail);
+  window.terminalrequest = $.post("../ajax/pax.php", {action: "credit", amount: transaction.amtdue}).done(creditdone).fail(fail);
 }

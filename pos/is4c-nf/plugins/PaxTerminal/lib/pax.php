@@ -44,7 +44,6 @@ class Pax {
   }
 
   public function build_request($command, $args=array(), $debug=false) {
-    error_log("Building request $command(".implode(", ", $args).")");
     $args_str = "";
     $processed_args = array();
     foreach($args as $arg) {
@@ -65,7 +64,6 @@ class Pax {
   private function http_request($query) {
     # TODO: Allow certificate pinning, use certificates at all, etc
     error_log("WARNING! Instead of verifying the remote certificate any of that 'encryption' shit, we're just doing it in the clear.");
-    error_log("Query string: ".$query);
     $client = new Client("http://".$this->host.":".$this->port);
     $request = $client->get("/?".$query);
     $query = $request->getQuery();
@@ -95,7 +93,46 @@ class Pax {
     return $this->parse_response($result);
   }
 
+  public function save_signature($raw) {
+    $points = explode("^", $raw);
+    $image = imagecreate(200, 200);  // TODO: Figure out how big it should *actually* be
+    $black = imagecolorallocate($image, 0, 0, 0);
+    $white = imagecolorallocate($image, 255, 255, 255);
+    imagecolortransparent($image, $white);
+    imagefill($image, 0, 0, $white);
+    $lastx = 0;
+    $lasty = 65535;
+    foreach($points as $point) {
+      if($point != "~") {
+        $coords = explode(",", $point);
+        $x = intval($coords[0]);
+        $y = intval($coords[1]);
+        if(($lastx == 0 && $lasty == 65535) || ($x == 0 && $y == 65535)) {
+          $lastx = $x;
+          $lasty = $y;
+        } else {
+          imageline($image, $lastx, $lasty, $x, $y, $black);
+          $lastx = $x;
+          $lasty = $y;
+        }
+      }
+    }
+    $filename = uniqid().".png";
+    imagepng($image, __DIR__."/../signatures/".$filename);
+    return $filename;
+  }
+
   // Different command that can be sent to the device.
+  public function do_signature($timeout=15) {
+    $request = $this->make_call('A20', array(0, '', '', strval($timeout*10)));
+    if($request['code'] != 0) {
+      return $request;
+    }
+    $out = $this->make_call('A08', array(0, ''));
+    $out['signature'] = self::save_signature($out['fields'][7]);
+    return $out;
+  }
+
   public function do_credit($amount) {
     $args = array('01', strval($amount*100), '', '1', '', '', '', '');
     $out = $this->make_call('T00', $args);

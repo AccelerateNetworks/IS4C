@@ -62,6 +62,9 @@ if(isset($_POST['action'])) {
           $args[] = $out['account']['entry'] == 0 ? 1 : 0;  # manual
           $args[] = date('Y-m-d H:i:s');  # responseDatetime
           TransRecord::addtender('Card', 'CC', $out['amount']['approved']*-1);
+          if($out['amount']['approved'] > 10) { // TODO: Fix $10 hard coded signature limit
+            $out['action'] = "signature";
+          }
           $out['redirect'] = MiscLib::base_url()."gui-modules/pos2.php?reginput=TO&repeat=1";
       } else {
         $args[] = $amount;
@@ -73,6 +76,9 @@ if(isset($_POST['action'])) {
       if(!$dbResponse) {
         error_log("Failed to store transaction in database!!");
       }
+    break;
+    case "signature":
+      $out = $pax->do_signature();
     break;
     default:
       $out['error'] = "Unknown command";
