@@ -32,7 +32,6 @@ window.commands = {};
 $(document).ready(function() {
   $("#formlocal").submit(function (e) {
     var command = $("#reginput").val();
-    console.log("Executing", command, e);
     if(window.commands.hasOwnProperty(command)) {
       e.preventDefault();
       $("#reginput").val("");
@@ -49,6 +48,15 @@ window.commands.RETRY = function() {
   }
 };
 
+window.commands.VOID = function() {
+  if(window.trace) {
+    $("#localmsg").text("Voiding transaction.");
+    $.post("../ajax/pax.php", {action: "void_CC", reference: window.trace.reference, transaction: window.trace.transaction}).then(handleVoid).fail(fail);
+  } else {
+    $("#localmsg").text("Can't void: no transaction processed yet. Maybe you meant [CLEAR]?");
+  }
+};
+
 function fail(result) {
   console.error(result);
   $("#localmsg").text(result);
@@ -58,6 +66,7 @@ function handleSwipe(response) {
   var result = $.Deferred();
   switch(response.code) {
     case 0:
+      window.trace = response.trace;
       if(response.needsSig) {
         need_signature = true;
         $("#localmsg").text("Please sign for transaction.");
@@ -79,6 +88,24 @@ function handleSwipe(response) {
     break;
   }
   return result;
+}
+
+function handleVoid(response) {
+  console.log(response);
+  switch(response.code) {
+    case 0:
+      $("#localmsg").text("Transaction voided");
+      window.location.href = response.redirect;
+    break;
+    default:
+      if(response.message !== undefined && response.code !== undefined) {
+        result.reject("Failed to complete transaction: " + response.message + " (" + response.code + ")");
+      } else {
+        console.log(response);
+        result.reject("Failed to complete transaction: " + response.error);
+      }
+    break;
+  }
 }
 
 function redirect(response) {

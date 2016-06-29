@@ -231,4 +231,10 @@ class Pax {
     $args = array('01', strval($amount*100), $account, '1', '', '', '', '');
     return self::parse_transaction($this->make_call('T04', $args));
   }
+
+  public function void_credit($reference, $transaction) {
+    $trace = array($reference, '', '', $transaction);
+    $args = array('16', '', '', $trace, '', '', '', '', '');
+    return self::parse_transaction($this->make_call('T00', $args));
+  }
 }

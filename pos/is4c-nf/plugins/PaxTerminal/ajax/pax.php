@@ -30,7 +30,7 @@ if (basename($_SERVER['PHP_SELF']) != basename(__FILE__)){
 
 include_once(dirname(__FILE__).'/../../../lib/AutoLoader.php');
 
-function store_transaction($transaction, $type) {
+function store_transaction($transaction, $type, $void=false) {
   $type_map['CC'] = "Credit Card";
   $type_map['DC'] = "Debit Card";
   $type_map['EC'] = "EBT Cash";
@@ -59,7 +59,9 @@ function store_transaction($transaction, $type) {
       $args[] = $transaction['account']['name'];  # name
       $args[] = $transaction['account']['entry'] == 0 ? 1 : 0;  # manual
       $args[] = date('Y-m-d H:i:s');  # responseDatetime
-      TransRecord::addtender($type_map[$type], $type, $transaction['amount']['approved']*-1);
+      $makenegative = $void ? 1 : -1;
+      $type_name = ($void ? "Void " : "").$type_map[$type];
+      TransRecord::addtender($type_name, $type, $transaction['amount']['approved']*$makenegative);
   } else {
     $args[] = $amount;
     $args[] = $transaction['message'];
@@ -120,6 +122,15 @@ if(isset($_POST['action'])) {
       );
       $out['storage_result'] = $dbc->execute($prepared, $args);
       $out['redirect'] = MiscLib::base_url()."gui-modules/pos2.php?reginput=TO&repeat=1";
+    break;
+    case "void_CC":
+      $reference = $_POST['reference'];
+      $transaction = "";
+      if(isset($_POST['transaction'])) {
+        $transaction = $_POST['transaction'];
+      }
+      $transaction = $pax->void_credit($reference, $transaction);
+      $out = store_transaction($transaction, "CC", true);
     break;
     default:
       $out['error'] = "Unknown command";
