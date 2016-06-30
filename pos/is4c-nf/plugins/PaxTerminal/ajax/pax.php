@@ -51,7 +51,7 @@ function store_transaction($transaction, $type, $void=false) {
     $query = "INSERT INTO PaycardTransactions ( dateID, empNo, registerNo, transNo, transID,
       processor, refNum, cardType, transType, amount, PAN, name, manual, responseDatetime)
       VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-      $args[] = $transaction['host']['reference_number'];  # refNum
+      $args[] = $transaction['trace']['reference'];  # refNum
       $args[] = $transaction['account']['type'];  # cardType
       $args[] = $transaction['transaction_type'];  # transType
       $args[] = $transaction['amount']['approved'];  # amount
@@ -108,7 +108,7 @@ if(isset($_POST['action'])) {
     break;
     case "signature":
       $out = $pax->do_signature();
-      if($out['code'] == 0) {        
+      if($out['code'] == 0) {
         $dbc = Database::tDataConnect();
         $query = "INSERT INTO CapturedSignature (tdate, emp_no, register_no, trans_no, trans_id, filetype, filecontents) VALUES (?, ?, ?, ?, ?, ?, ?)";
         $prepared = $dbc->prepare($query);
