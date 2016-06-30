@@ -32,10 +32,10 @@ window.commands = {};
 $(document).ready(function() {
   $("#formlocal").submit(function (e) {
     var command = $("#reginput").val();
-    if(window.commands.hasOwnProperty(command)) {
+    if(window.commands.hasOwnProperty(command.toUpperCase())) {
       e.preventDefault();
       $("#reginput").val("");
-      window.commands[command]();
+      window.commands[command.toUpperCase()]();
     }
   });
 });
