@@ -108,19 +108,21 @@ if(isset($_POST['action'])) {
     break;
     case "signature":
       $out = $pax->do_signature();
-      $dbc = Database::tDataConnect();
-      $query = "INSERT INTO CapturedSignature (tdate, emp_no, register_no, trans_no, trans_id, filetype, filecontents) VALUES (?, ?, ?, ?, ?, ?, ?)";
-      $prepared = $dbc->prepare($query);
-      $args = array(
-        date('Y-m-d H:i:s'),
-        CoreLocal::get('CashierNo'),
-        CoreLocal::get('laneno'),
-        CoreLocal::get('transno'),
-        CoreLocal::get('paycard_id'),
-        "svg",
-        json_encode($out['signature']['vector'])
-      );
-      $out['storage_result'] = $dbc->execute($prepared, $args);
+      if($out['code'] == 0) {        
+        $dbc = Database::tDataConnect();
+        $query = "INSERT INTO CapturedSignature (tdate, emp_no, register_no, trans_no, trans_id, filetype, filecontents) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        $prepared = $dbc->prepare($query);
+        $args = array(
+          date('Y-m-d H:i:s'),
+          CoreLocal::get('CashierNo'),
+          CoreLocal::get('laneno'),
+          CoreLocal::get('transno'),
+          CoreLocal::get('paycard_id'),
+          "svg",
+          json_encode($out['signature']['vector'])
+        );
+        $out['storage_result'] = $dbc->execute($prepared, $args);
+      }
       $out['redirect'] = MiscLib::base_url()."gui-modules/pos2.php?reginput=TO&repeat=1";
     break;
     case "void_CC":
