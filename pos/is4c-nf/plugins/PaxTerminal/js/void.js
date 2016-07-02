@@ -11,11 +11,16 @@ currentStep = 0;
  */
 
 function doPagination(current, lastCount) {
-  if(lastCount < 10) {
+  if(lastCount == 10) {
     // handle next page
+    scrollable.pageDown = function() {
+      window.location.href = window.location.pathname + "?page=" + (current+1);
+    };
   }
   if(current > 0) {
-    // handle previous page
+    scrollable.pageUp = function () {
+      window.location.href = window.location.pathname + "?page=" + (current-1);
+    };
   }
 }
 
@@ -127,6 +132,7 @@ function reginputKeypress(e) {
     break;
   }
 }
+
 
 $(document).ready(function() {
   $("#formlocal").submit(formSubmit);

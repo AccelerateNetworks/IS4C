@@ -87,8 +87,8 @@ class PaxVoidPage extends BasicCorePage {
       <?php } ?>
     </div>
     <script type="text/javascript">
-    doPagination(<?php echo $page.", ".$dbResponse->_numOfRows; ?>);
     laneno = <?php echo CoreLocal::get("laneno"); ?>;
+    doPagination(<?php echo $page.", ".$dbResponse->_numOfRows; ?>);
     </script>
     <?php
   }

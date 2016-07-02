@@ -18,7 +18,7 @@ scrollable.up = function() {
     return scrollable.highlight(scrollable.selected-1);
   } else {
     if(scrollable.pageUp !== undefined) {
-      return scrollable.pageUp;
+      return scrollable.pageUp();
     } else {
       return false;
     }
@@ -27,14 +27,14 @@ scrollable.up = function() {
 };
 
 scrollable.down = function() {
-  if(scrollable.selected >= scrollable.totalElements) {
+  if(scrollable.selected < scrollable.totalElements-1) {
+    return scrollable.highlight(scrollable.selected+1);
+  } else {
     if(scrollable.pageDown !== undefined) {
-      return scrollable.pageDown;
+      return scrollable.pageDown();
     } else {
       return false;
     }
-  } else {
-    return scrollable.highlight(scrollable.selected+1);
   }
 };
 
