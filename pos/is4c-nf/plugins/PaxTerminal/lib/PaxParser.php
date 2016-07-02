@@ -23,23 +23,33 @@
 
 class PaxParser extends Parser {
 
+  public $accepted_types = array('CC', 'DC', 'EC', 'EF');
+  public $other_cmds = array('VOID');
+
   public function check($str) {
-    $accepted_types = array('CC', 'DC', 'EC', 'EF');
-    return (is_numeric(substr($str, 0, -2)) || strlen($str) == 2) && in_array(substr($str, -2), $accepted_types);
+    return (is_numeric(substr($str, 0, -2)) || strlen($str) == 2) && in_array(strtoupper(substr($str, -2)), $this->accepted_types) || in_array(strtoupper($str), $this->other_cmds);
   }
 
   public function parse($str) {
-    $transaction_type = substr($str, -2);
-    $amount = CoreLocal::get('amtdue');
-    if($transaction_type == "EF") {
-      $amount = CoreLocal::get('fsEligible');
-    }
-    if(is_numeric(substr($str, 0, -2))) {
-      $amount = floatval(substr($str, 0, -2))/100;
-    }
-    $info = new PaxTerminal();
     $ret = $this->default_json();
-    $ret['main_frame'] = $info->pluginUrl() . '/gui/paxcommand.php?amount='.$amount.'&type='.$transaction_type;
+    $info = new PaxTerminal();
+    if(in_array($str, $this->other_cmds)) {
+      switch(strtoupper($str)) {
+        case "VOID":
+          $ret['main_frame'] = $info->pluginUrl() . '/gui/VoidPage.php';
+        break;
+      }
+    } else {
+      $transaction_type = substr($str, -2);
+      $amount = CoreLocal::get('amtdue');
+      if($transaction_type == "EF") {
+        $amount = CoreLocal::get('fsEligible');
+      }
+      if(is_numeric(substr($str, 0, -2))) {
+        $amount = floatval(substr($str, 0, -2))/100;
+      }
+      $ret['main_frame'] = $info->pluginUrl() . '/gui/paxcommand.php?amount='.$amount.'&type='.$transaction_type;
+    }
     return $ret;
   }
 

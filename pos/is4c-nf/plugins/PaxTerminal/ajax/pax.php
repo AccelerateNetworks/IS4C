@@ -30,7 +30,7 @@ if (basename($_SERVER['PHP_SELF']) != basename(__FILE__)){
 
 include_once(dirname(__FILE__).'/../../../lib/AutoLoader.php');
 
-function store_transaction($transaction, $type, $void=false) {
+function store_transaction($transaction, $type, $void=false, $current=true) {
   $type_map['CC'] = "Credit Card";
   $type_map['DC'] = "Debit Card";
   $type_map['EC'] = "EBT Cash";
@@ -61,7 +61,9 @@ function store_transaction($transaction, $type, $void=false) {
       $args[] = date('Y-m-d H:i:s');  # responseDatetime
       $makenegative = $void ? 1 : -1;
       $type_name = ($void ? "Void " : "").$type_map[$type];
-      TransRecord::addtender($type_name, $type, $transaction['amount']['approved']*$makenegative);
+      if($current) {
+        TransRecord::addtender($type_name, $type, $transaction['amount']['approved']*$makenegative);
+      }
   } else {
     $args[] = $amount;
     $args[] = $transaction['message'];
@@ -73,6 +75,21 @@ function store_transaction($transaction, $type, $void=false) {
   }
   $ret['redirect'] = MiscLib::base_url()."gui-modules/pos2.php?reginput=TO&repeat=1";
   return $ret;
+}
+
+function log_voided($reference, $transaction) {
+  // Get the paycardTransactionID of the VOID transaction
+  $dbTrans = PaycardLib::paycard_db();
+  $findVoidQuery = "SELECT paycardTransactionID FROM PaycardTransactions WHERE refNum = ? AND transNo = ? AND transType = '17'";
+  $findVoidPrepared = $dbTrans->prepare($findVoidQuery);
+  $findVoidResponse = $dbTrans->execute($findVoidPrepared, array($reference, $transaction));
+  $row = $dbTrans->fetchArray($findVoidResponse);
+  // TODO: What happens if the query comes up empty?
+
+  $query = "UPDATE PaycardTransactions SET xTransactionID = ? WHERE refNum = ? AND transNo = ? AND transType = '01'";
+  $args = array($row['paycardTransactionID'], $reference, $transaction);
+  $prepared = $dbTrans->prepare($query);
+  $dbResponse = $dbTrans->execute($prepared, $args);
 }
 
 $out = array("error" => "Something is very wrong");
@@ -127,12 +144,13 @@ if(isset($_POST['action'])) {
     break;
     case "void_CC":
       $reference = $_POST['reference'];
-      $transaction = "";
+      $transaction_number = "";
       if(isset($_POST['transaction'])) {
-        $transaction = $_POST['transaction'];
+        $transaction_number = $_POST['transaction'];
       }
-      $transaction = $pax->void_credit($reference, $transaction);
-      $out = store_transaction($transaction, "CC", true);
+      $transaction = $pax->void_credit($reference, $transaction_number);
+      $out = store_transaction($transaction, "CC", true, !isset($_POST['not_current']));
+      log_voided($reference, $transaction_number, $out['trace']['transaction']);
     break;
     default:
       $out['error'] = "Unknown command";
