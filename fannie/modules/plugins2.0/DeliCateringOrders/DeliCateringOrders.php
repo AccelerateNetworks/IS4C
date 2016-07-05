@@ -1,7 +1,7 @@
-<?php
+<?php 
 /*******************************************************************************
 
-    Copyright 2012 Whole Foods Co-op
+    Copyright 2013 Whole Foods Co-op
 
     This file is part of IT CORE.
 
@@ -21,15 +21,13 @@
 
 *********************************************************************************/
 
-class PaycardGiftRequest extends PaycardRequest
-{
-    public function __construct($refnum)
-    {
-        parent::__construct($refnum);
-        $this->type = 'PrePaid';
-    }
-
-    // override; no legacy saving on gift cards
-    protected function legacySave($dbTrans) { }
+include(dirname(__FILE__).'/../../../config.php');
+if (!class_exists('FannieAPI')) {
+    include($FANNIE_ROOT.'classlib2.0/FannieAPI.php');
 }
 
+class DeliCateringOrders extends \COREPOS\Fannie\API\FanniePlugin 
+{
+    public $plugin_description = 'Plugin to take new Deli Catering Orders';
+    public $plugin_settings = array();
+}

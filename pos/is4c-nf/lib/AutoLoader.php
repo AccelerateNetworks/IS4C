@@ -67,7 +67,7 @@ class AutoLoader extends LibraryClass
             }
         }
 
-        if (isset($map[$name]) && !file_exists($map[$name])) {
+        if (strpos($name, '\\') === false && isset($map[$name]) && !file_exists($map[$name])) {
             // file is missing. 
             // rebuild map to see if the class is
             // gone or the file just moved
@@ -83,12 +83,14 @@ class AutoLoader extends LibraryClass
                 $path .= self::arrayToPath(array_slice($pieces, 2));
                 if (file_exists($path)) {
                     $map[$name] = $path;
+                    CoreLocal::set('ClassLookup', $map);
                 }
             } elseif (count($pieces) > 2 && $pieces[0] == 'COREPOS' && $pieces[1] == 'pos') {
                 $path = dirname(__FILE__) . $sep . '..' . $sep;
                 $path .= self::arrayToPath(array_slice($pieces, 2));
                 if (file_exists($path)) {
                     $map[$name] = $path;
+                    CoreLocal::set('ClassLookup', $map);
                 }
             }
         } elseif (!isset($map[$name])) {

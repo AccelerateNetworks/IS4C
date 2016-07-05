@@ -1,9 +1,9 @@
 <?php
 /*******************************************************************************
 
-    Copyright 2014 Whole Foods Co-op
+    Copyright 2012 Whole Foods Co-op
 
-    This file is part of CORE-POS.
+    This file is part of IT CORE.
 
     IT CORE is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -21,34 +21,14 @@
 
 *********************************************************************************/
 
-/**
-  @class BatchMergeTableModel
-*/
-class BatchMergeTableModel extends BasicModel
+namespace COREPOS\pos\plugins\Paycards\sql;
+
+class PaycardGiftRequest extends PaycardRequest
 {
-
-    protected $name = "batchMergeTable";
-    protected $preferred_db = 'op';
-
-    protected $columns = array(
-        'startDate' => array('type'=>'DATETIME'),
-        'endDate' => array('type'=>'DATETIME'),
-        'upc' => array('type'=>'VARCHAR(13)', 'index'=>true),
-        'description' => array('type'=>'VARCHAR(30)'),
-        'batchID' => array('type'=>'INT', 'index'=>true)
-    );
-
-    public function doc()
+    public function __construct($refnum, $dbTrans)
     {
-        return '
-Use:
-This is a speedup table for reports. It\'s
-populated (daily) by a scheduled task.
-It unrolls likecoded batchList
-entries back into upcs which simplifies subsequent
-queries. At WFC batchList is also a bit large
-and slow to join against directly.
-        ';
+        parent::__construct($refnum, $dbTrans);
+        $this->type = 'PrePaid';
     }
 }
 
