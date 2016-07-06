@@ -55,7 +55,7 @@ function store_transaction($transaction, $type, $void=false, $current=true) {
       $args[] = $transaction['account']['type'];  # cardType
       $args[] = $transaction['transaction_type'];  # transType
       $args[] = $transaction['amount']['approved'];  # amount
-      $args[] = intval($transaction['additional']['CARDBIN']."000000".$transaction['account']['number']);  # PAN
+      $args[] = intval($transaction['additional']['CARDBIN']."******".$transaction['account']['number']);  # PAN
       $args[] = $transaction['account']['name'];  # name
       $args[] = $transaction['account']['entry'] == 0 ? 1 : 0;  # manual
       $args[] = date('Y-m-d H:i:s');  # responseDatetime
