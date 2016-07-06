@@ -39,6 +39,14 @@ class PaxParser extends Parser {
           $ret['main_frame'] = $info->pluginUrl() . '/gui/VoidPage.php';
         break;
       }
+    } elseif(CoreLocal::get('ttlflag') == 0) {
+      $ret['output'] = DisplayLib::boxMsg(
+          _('transaction must be totaled before tender can be accepted'),
+          '',
+          false,
+          DisplayLib::standardClearButton()
+      );
+      // $ret['main_frame'] = MiscLib::baseURL() . 'gui-modules/boxMsg2.php';
     } else {
       $transaction_type = substr($str, -2);
       $amount = CoreLocal::get('amtdue');
