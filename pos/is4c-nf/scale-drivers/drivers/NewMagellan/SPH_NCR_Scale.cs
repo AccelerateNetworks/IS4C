@@ -127,6 +127,7 @@ public class SPH_NCR_Scale : SerialPortHandler
         while (SPH_Running) {
             try {
                 int b = sp.ReadByte();
+                Console.WriteLine(b);
                 if (b == ETX) {
                     // message complete
                     if (this.verbose_mode > 0) {
