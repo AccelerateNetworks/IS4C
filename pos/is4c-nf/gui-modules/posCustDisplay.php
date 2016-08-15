@@ -23,7 +23,6 @@
 
 use COREPOS\pos\lib\gui\BasicCorePage;
 use COREPOS\pos\lib\DisplayLib;
-
 include_once(dirname(__FILE__).'/../lib/AutoLoader.php');
 
 class posCustDisplay extends BasicCorePage
@@ -31,12 +30,18 @@ class posCustDisplay extends BasicCorePage
     protected $title = "COREPOS Customer Display";
     protected $hardware_polling = false;
 
-    public function head_content() {
+    public function __construct() {
+      $this->mods = array();
       $mods = AutoLoader::ListModules("COREPOS\\pos\\lib\\CustomerDisplayMod", true);
-      error_log(print_r($mods, true));
       foreach($mods as $class) {
-        $mod = new $class();
-        echo $mod->head_content();
+        $this->mods[] = new $class($this);
+      }
+      parent::__construct();
+    }
+
+    public function head_content() {
+      foreach($this->mods as $mod) {
+        $mod->head_content();
       }
     }
 
@@ -66,6 +71,9 @@ class posCustDisplay extends BasicCorePage
         echo "<div id=\"footer\">";
         echo DisplayLib::printfooter(true);
         echo '</div>';
+        foreach($this->mods as $mod) {
+          $mod->body_content();
+        }
 
     } // END body_content() FUNCTION
 

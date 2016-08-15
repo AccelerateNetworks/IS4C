@@ -24,6 +24,10 @@ namespace COREPOS\pos\lib;
 
 class CustomerDisplayMod {
 
+  public function __construct($customerDisplayPage) {}
+
   public function head_content() {}
+
+  public function body_content() {}
 
 }
