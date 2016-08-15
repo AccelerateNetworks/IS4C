@@ -32,7 +32,7 @@ class posCustDisplay extends BasicCorePage
 
     public function __construct() {
       $this->mods = array();
-      $mods = AutoLoader::ListModules("COREPOS\\pos\\lib\\CustomerDisplayMod", true);
+      $mods = AutoLoader::ListModules("COREPOS\\pos\\lib\\CustomerDisplayMod");
       foreach($mods as $class) {
         $this->mods[] = new $class($this);
       }
